@@ -5,542 +5,1051 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to scale Meta to $100k a day</title>
 <meta name="description" content="Momo, co-founder of Care &amp; Bloom: how we scaled Meta from under $5k to $100k+ a day, profitably.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Newsreader:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
 <style>
-  /* Each slide is a fixed 1920x1080 canvas, scaled to fit the window. */
+  /* Fonts: Bricolage Grotesque and DM Sans (both SIL OFL), served from fonts/. */
+  /* Bricolage Grotesque, latin-ext */
+  @font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 200 800;
+    font-stretch: 75% 100%;
+    font-display: swap;
+    src: url(fonts/bricolage-grotesque-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  /* Bricolage Grotesque, latin */
+  @font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 200 800;
+    font-stretch: 75% 100%;
+    font-display: swap;
+    src: url(fonts/bricolage-grotesque-latin.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  /* DM Sans, latin-ext */
+  @font-face {
+    font-family: 'DM Sans';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url(fonts/dm-sans-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  /* DM Sans, latin */
+  @font-face {
+    font-family: 'DM Sans';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url(fonts/dm-sans-latin.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  /* ==========================================================================
+     BLOOM POP
+     Each slide is a fixed 1920x1080 canvas, scaled to fit the window.
+     Everything below is a system: tokens, then reusable components, then the
+     few slide-specific layout rules at the very end.
+
+     To restyle another slide: give its <section> a colour field (.bg-pink,
+     .bg-lime, .bg-cream, .bg-ink), set type with .h-hero / .h-1 / .h-2 / .lead /
+     .body, and compose from .pill, .chips, .burst, .frame, .stats > .stat,
+     .cards > .card (+ .card__tag), .band > .band__zone, .secnav and .pageno.
+     Rotation, entrance delay and size are the only inline styles: --rot, --d,
+     --size. Entrances: .a-rise (type), .a-pop (tiles), .a-land (stickers).
+     ========================================================================== */
+
+  /* ---- 1. Tokens --------------------------------------------------------- */
+  :root{
+    /* colour */
+    --pink:#FF2A8E; --lime:#CCE245; --cream:#FBF1D8; --ink:#1A1A1A; --magenta:#C8106A;
+    --paper:#FFF9EC;            /* card and frame surface */
+    --mute:#4F463E;             /* secondary text on cream / paper (AA+) */
+    /* type */
+    --f-display:'Bricolage Grotesque','Arial Black',Arial,sans-serif;
+    --f-body:'DM Sans',Arial,sans-serif;
+    --t-mega:372px;             /* one giant number per deck moment */
+    --t-hero:172px;             /* cover headline */
+    --t-h1:148px;               /* statement headline */
+    --t-h2:112px;               /* headline that shares the slide */
+    --t-stat:172px;             /* stat tile numeral */
+    --t-range:62px;             /* numerals inside bars / small tiles */
+    --t-h3:40px;                /* card tag, sticker text */
+    --t-lead:36px;              /* sub-headline */
+    --t-body:32px;              /* body copy */
+    --t-label:32px;             /* stat labels */
+    --t-foot:24px;              /* footer nav, counter: the floor */
+    /* layout */
+    --m:96px;                   /* safe margin */
+    --gut:32px;                 /* 12-col gutter */
+    /* graphic language */
+    --ln:5px;                   /* ink outline */
+    --ln-bold:6px;              /* outline on the biggest objects */
+    --drop:12px;                /* hard offset shadow, never blurred */
+    --r-card:30px;
+    --r-frame:18px;
+    /* motion */
+    --ease-pop:cubic-bezier(.34,1.56,.64,1);
+    --ease-out:cubic-bezier(.2,.8,.2,1);
+  }
+
+  /* ---- 2. Base and deck mechanics ---------------------------------------- */
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:#1a1a1a;overflow:hidden;font-family:Inter,Arial,sans-serif;color:#1a1a1a}
+  html,body{height:100%;background:#1a1a1a;overflow:hidden;font-family:var(--f-body);color:var(--ink)}
   #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center}
   .slide{position:absolute;inset:0;display:none}
   .slide.on{display:block}
-  .slide>section{position:relative;width:1920px;height:1080px;overflow:hidden}
-  h1,h2,h3{font-weight:600}
+  .slide>section{position:relative;width:1920px;height:1080px;overflow:hidden;padding:var(--m);
+    font-family:var(--f-body);font-size:var(--t-body);color:var(--ink)}
   p,h1,h2,h3,li{overflow-wrap:break-word}
   ul{padding-left:1.1em}
   img{display:block;flex-shrink:0}
-  #ui{position:fixed;right:20px;bottom:16px;display:flex;gap:8px;align-items:center;font:600 14px Inter,sans-serif;color:#fbf1d8;opacity:.75}
-  #ui button{background:#fbf1d8;color:#1a1a1a;border:0;border-radius:999px;width:36px;height:36px;font-size:18px;cursor:pointer}
+  #ui{position:fixed;right:20px;bottom:16px;display:flex;gap:8px;align-items:center;font:600 14px var(--f-body);color:#fbf1d8;opacity:.8}
+  /* Ink chips with a cream edge, so the controls stay visible on every field colour. */
+  #ui span{background:#1a1a1a;padding:5px 12px;border-radius:999px;border:2px solid #fbf1d8}
+  #ui button{background:#1a1a1a;color:#fbf1d8;border:2px solid #fbf1d8;border-radius:999px;width:36px;height:36px;font-size:18px;cursor:pointer}
+  .sprite{position:absolute;width:0;height:0;overflow:hidden}
+
+  /* ---- 3. Colour fields --------------------------------------------------- */
+  .bg-pink{background:var(--pink)}
+  .bg-lime{background:var(--lime)}
+  .bg-cream{background:var(--cream)}
+  .bg-ink{background:var(--ink);color:var(--cream)}
+  /* split layout: a second full-height colour block on the right, ink seam between */
+  .split__block{position:absolute;top:0;bottom:0;right:0;width:var(--split,504px);border-left:var(--ln-bold) solid var(--ink)}
+
+  /* ---- 4. Grid ------------------------------------------------------------ */
+  .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gut)}
+  .stack{display:flex;flex-direction:column}
+
+  /* ---- 5. Type ------------------------------------------------------------ */
+  .h-hero,.h-1,.h-2,.h-3,.mega,.stat__num,.band__range,.pill,.burst__text,.frame__cap,.pageno{
+    font-family:var(--f-display);font-weight:800;font-optical-sizing:auto}
+  .h-hero{font-size:var(--t-hero);line-height:.9;letter-spacing:-.03em}
+  .h-1{font-size:var(--t-h1);line-height:.95;letter-spacing:-.03em}
+  .h-2{font-size:var(--t-h2);line-height:.98;letter-spacing:-.03em}
+  .h-3{font-size:var(--t-h3);line-height:1;letter-spacing:-.02em}
+  .lead{font-size:var(--t-lead);line-height:1.3;font-weight:500;color:var(--mute)}
+  .body{font-size:var(--t-body);line-height:1.35;font-weight:500;color:var(--mute)}
+  .line{display:block}
+  .nb{white-space:nowrap}
+  /* the giant number: cream sticker lettering with ink outline and hard shadow */
+  .mega{display:block;font-size:var(--t-mega);line-height:.8;letter-spacing:.008em;color:var(--cream);
+    -webkit-text-stroke:16px var(--ink);paint-order:stroke fill;text-shadow:14px 14px 0 var(--ink)}
+  .mega__unit{margin-right:.035em}   /* optical: keeps the currency sign off the first numeral */
+  /* sticker word inside a headline */
+  .hl{display:inline-block;padding:0 .14em .04em;margin:0 .02em;background:var(--hl,var(--lime));
+    border:var(--ln) solid var(--ink);border-radius:.16em;box-shadow:8px 8px 0 var(--ink);rotate:var(--rot,-2deg)}
+  .hl--cream{--hl:var(--cream)} .hl--pink{--hl:var(--pink)} .hl--lime{--hl:var(--lime)}
+
+  /* ---- 6. Sticker primitives ---------------------------------------------- */
+  /* pill: kickers, eyebrows, card tags, chips */
+  .pill{display:inline-flex;align-items:center;padding:.3em .62em .36em;border-radius:999px;
+    font-size:var(--t-h3);line-height:1;letter-spacing:-.02em;white-space:nowrap;color:var(--ink);
+    background:var(--pill,var(--lime));border:var(--ln) solid var(--ink);
+    box-shadow:var(--pill-drop,8px) var(--pill-drop,8px) 0 var(--ink);rotate:var(--rot,0deg)}
+  .pill--pink{--pill:var(--pink)} .pill--lime{--pill:var(--lime)} .pill--cream{--pill:var(--cream)}
+  .pill--xl{font-size:58px;--pill-drop:10px;border-width:var(--ln-bold)}
+  /* chips: quiet pills for credential rows */
+  .chips{display:flex;align-items:center;flex-wrap:wrap;gap:10px 9px;font-size:28px;font-weight:700;line-height:1}
+  .chip{padding:11px 17px 12px;border:4px solid var(--ink);border-radius:999px;background:var(--cream);white-space:nowrap}
+  .chips .dot{font-weight:800}
+  /* starburst badge: inline SVG shape with real text on top */
+  .burst{position:relative;display:grid;place-items:center;width:var(--size,260px);height:var(--size,260px);rotate:var(--rot,8deg)}
+  .burst svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .burst .burst__drop{fill:var(--ink);transform:translate(5px,5px)}
+  .burst .burst__face{fill:var(--burst,var(--pink));stroke:var(--ink);stroke-width:3.6;stroke-linejoin:round}
+  .burst__text{position:relative;text-align:center;font-size:var(--t-h3);line-height:.95;letter-spacing:-.02em}
+  /* image frame: chunky outlined polaroid */
+  .frame{background:var(--paper);border:var(--ln-bold) solid var(--ink);border-radius:var(--r-frame);padding:22px;
+    box-shadow:16px 16px 0 var(--ink);rotate:var(--rot,0deg)}
+  .frame__media{position:relative;border:4px solid var(--ink);border-radius:8px;overflow:hidden;background:var(--ink)}
+  .frame__media img{width:100%;height:100%;object-fit:cover}
+  .frame__cap{padding:18px 4px 4px;font-size:38px;font-weight:700;line-height:1.08;letter-spacing:-.02em;text-wrap:balance}
+  /* print-dot screen so a low-res image reads as a deliberate halftone */
+  .frame--halftone .frame__media::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
+    background:radial-gradient(circle at 2px 2px,rgba(26,26,26,.32) 1.1px,transparent 1.7px) 0 0/5px 5px}
+
+  /* ---- 7. Stat tile -------------------------------------------------------- */
+  .stats{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:var(--gut)}
+  .stat{display:flex;flex-direction:column;gap:12px;padding:30px 36px 32px;border-radius:var(--r-card);
+    background:var(--tile,var(--cream));border:var(--ln-bold) solid var(--ink);
+    box-shadow:var(--drop) var(--drop) 0 var(--tile-drop,var(--ink))}
+  .stat__num{font-size:var(--t-stat);line-height:.86;letter-spacing:-.02em;font-stretch:88%}
+  .stat__label{font-size:var(--t-label);font-weight:700;line-height:1.1}
+  .stat--pink{--tile:var(--pink)} .stat--lime{--tile:var(--lime)} .stat--cream{--tile:var(--cream)}
+  .stat--ink{--tile:var(--ink);--tile-drop:var(--magenta);color:var(--cream)}
+
+  /* ---- 8. Card with a tag sticker ------------------------------------------ */
+  .cards{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:var(--gut)}
+  .card{position:relative;padding:58px 40px 32px;border-radius:var(--r-card);background:var(--paper);
+    border:var(--ln) solid var(--ink);box-shadow:var(--drop) var(--drop) 0 var(--ink)}
+  .card__tag{position:absolute;left:30px;top:0;translate:0 -52%}
+  .card__tag.pill{--rot:-2deg}
+
+  /* ---- 9. Proportional band (EBIT bar) ------------------------------------- */
+  .band{display:grid;height:200px;border:var(--ln-bold) solid var(--ink);border-radius:var(--r-card);overflow:hidden;
+    background:var(--paper);box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+  .band__zone{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 30px;background:var(--zone);transform-origin:left center}
+  .band__zone+.band__zone{box-shadow:inset var(--ln-bold) 0 0 var(--ink);padding-left:36px}
+  .band__range{font-size:var(--t-range);line-height:.9;letter-spacing:-.04em}
+  .band__label{font-size:28px;font-weight:700;line-height:1.15}
+  .zone--pink{--zone:var(--pink)} .zone--lime{--zone:var(--lime)} .zone--ink{--zone:var(--ink);color:var(--cream)}
+
+  /* ---- 10. Footer: section nav and slide counter --------------------------- */
+  .secnav{position:absolute;left:var(--m);bottom:36px;display:flex;align-items:center;gap:16px;
+    font-size:var(--t-foot);font-weight:700;line-height:1;letter-spacing:.01em;color:var(--mute)}
+  .secnav .is-on{padding:11px 20px 12px;border-radius:999px;background:var(--ink);color:var(--cream)}
+  .secnav .sep{color:var(--magenta);font-weight:800}
+  .pageno{position:absolute;right:var(--m);top:44px;display:grid;place-items:center;width:60px;height:60px;border-radius:50%;
+    background:var(--ink);color:var(--cream);font-size:var(--t-foot);line-height:1;letter-spacing:.02em}
+
+  /* ---- 11. Motion: snappy, settled inside 1.2s ------------------------------ */
+  @keyframes pop{0%{opacity:0;scale:.72}55%{opacity:1}100%{opacity:1;scale:1}}
+  @keyframes land{0%{opacity:0;scale:1.4;rotate:calc(var(--rot,0deg) + 10deg)}100%{opacity:1;scale:1;rotate:var(--rot,0deg)}}
+  @keyframes rise{0%{opacity:0;translate:0 44px}100%{opacity:1;translate:0 0}}
+  @keyframes slam{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+  @keyframes wipe{0%{translate:100% 0}100%{translate:0 0}}
+  .slide.on .a-pop{animation:pop .5s var(--ease-pop) var(--d,0s) both}
+  .slide.on .a-land{animation:land .45s var(--ease-pop) var(--d,0s) both}
+  .slide.on .a-rise{animation:rise .5s var(--ease-out) var(--d,0s) both}
+  .slide.on .a-wipe{animation:wipe .5s var(--ease-out) var(--d,0s) both}
+  .slide.on .band__zone{animation:slam .4s var(--ease-pop) both}
+  .slide.on .band__zone:nth-child(1){animation-delay:.3s}
+  .slide.on .band__zone:nth-child(2){animation-delay:.5s}
+  .slide.on .band__zone:nth-child(3){animation-delay:.7s}
+  @media (prefers-reduced-motion:reduce){.slide.on *{animation:none!important}}
+
+  /* ---- 12. Slide layouts (the only per-slide rules) ------------------------- */
+  /* 01 cover: pink field, lime column, polaroid on the seam */
+  #cover{align-items:center}
+  .cover__copy{grid-column:1 / 9;position:relative}
+  .cover__copy .mega{margin:.085em 0 .1em -.02em}
+  .cover__kicker{position:absolute;left:478px;bottom:24px}
+  .cover__frame{grid-column:9 / 13;width:640px;justify-self:end;margin-right:12px}
+  .cover__frame .frame__media{height:248px}
+  /* 02 intro: lime field, portrait sticker, stat band */
+  #me{justify-content:space-between}
+  .me__top{align-items:center}
+  .me__portrait{grid-column:1 / 5;position:relative;width:460px;margin:10px 0 0 22px}
+  .me__portrait .frame__media{height:404px}
+  .me__portrait .burst{position:absolute;right:-84px;bottom:-56px}
+  .me__intro{grid-column:5 / 13;gap:36px;padding-left:28px}
+  /* 03 goal: cream field, statement, band, two principles */
+  #ebit .lead{margin-top:18px}
+  #ebit .band{margin-top:40px;grid-template-columns:minmax(0,15fr) minmax(0,5fr) minmax(0,5fr)}
+  #ebit .cards{margin-top:74px}
+
+  /* ==== PART 1 START ==== */
+  /* Slides 04-08. Everything is scoped to a slide id or prefixed with it; .p1-* is shared by these five. */
+  /* pink fields: sub-headline and footer nav go ink, --mute fails AA on pink */
+  #market .lead,#listicle .lead{color:var(--ink)}
+  #market .secnav,#listicle .secnav{color:var(--ink)}
+  #market .secnav .sep,#listicle .secnav .sep{color:var(--cream)}
+  /* line icons from the sprite */
+  .p1-ico{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+  /* 04 market: pink field, one paper chart card, the advice sticker sits in the chart's empty corner */
+  #market .lead{margin-top:18px}
+  .market__chart{margin-top:30px;padding:30px 40px 34px;display:grid;grid-auto-rows:56px;row-gap:22px}
+  .market__row{display:grid;grid-template-columns:392px minmax(0,1fr);column-gap:24px;align-items:center}
+  .market__name{display:flex;align-items:center;gap:16px;font-size:var(--t-label);font-weight:700;line-height:1}
+  .market__us{font-size:28px;--pill-drop:5px;--rot:-3deg}
+  .market__track{display:flex;align-items:center;gap:22px}
+  /* bar length is the market size: --v is px on a scale where $210B = 1000 */
+  .market__bar{position:relative;flex:none;width:calc(var(--v) * 1px);height:56px;background:var(--bar,var(--lime));
+    border:var(--ln) solid var(--ink);border-radius:var(--r-frame);box-shadow:6px 6px 0 var(--ink);transform-origin:left center}
+  .market__bar--us{--bar:var(--pink)}
+  /* axis break: $1.8T is off the scale, so its bar is cut */
+  .market__bar--cut::after{content:"";position:absolute;top:-12px;bottom:-18px;right:58px;width:22px;background:var(--paper);
+    border-left:var(--ln) solid var(--ink);border-right:var(--ln) solid var(--ink);transform:skewX(-20deg)}
+  .market__val{font-family:var(--f-display);font-weight:800;font-size:var(--t-range);line-height:.9;letter-spacing:-.04em;white-space:nowrap}
+  .market__never{--pill:var(--ink);--rot:-2deg;color:var(--cream);box-shadow:8px 8px 0 var(--magenta)}
+  .market__tip{position:absolute;right:38px;bottom:36px;width:548px;padding:54px 34px 30px;background:var(--ink);
+    box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+  .market__tip .body{color:var(--cream);font-weight:700;line-height:1.25;text-wrap:balance}
+  .slide.on .market__bar{animation:slam .4s var(--ease-pop) var(--d,0s) both}
+
+  /* 05 ladder: cream field, four step cards climbing towards the top right */
+  #ladder .lead{margin-top:18px}
+  .ladder__steps{position:absolute;left:var(--m);right:var(--m);bottom:108px;display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px;align-items:end}
+  .ladder__step{display:flex;flex-direction:column;height:var(--h);padding:50px 24px 24px;background:var(--tile,var(--paper))}
+  .ladder__step--lime{--tile:var(--lime)} .ladder__step--pink{--tile:var(--pink)}
+  .ladder__step--ink{--tile:var(--ink);color:var(--cream);box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+  .ladder__range{font-family:var(--f-display);font-weight:800;font-size:var(--t-range);line-height:.9;letter-spacing:-.04em;
+    font-stretch:80%;white-space:nowrap}
+  /* the arrow keeps its character for readers and copy-paste, and is drawn as a chunky stroke */
+  .ladder__to{display:inline-block;width:46px;height:32px;margin:0 4px;vertical-align:5px;overflow:hidden;font-size:0;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 32' fill='none' stroke='%231A1A1A' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 16h37M29 5l12 11-12 11'/%3E%3C/svg%3E") center/contain no-repeat}
+  .ladder__what{margin-top:10px;font-size:28px;font-weight:700;line-height:1.15;white-space:nowrap}
+  #ladder .frame__media{margin-top:auto;height:var(--shot)}
+  /* step 1 zooms past the screenshot's white page margins, still well under 1:1 */
+  .ladder__zoom img{object-position:50% 30%;scale:1.24;transform-origin:47% 40%}
+  .ladder__when{align-self:flex-start;margin-top:26px;font-size:28px;box-shadow:6px 6px 0 var(--magenta)}
+  .ladder__more{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:32px}
+  .ladder__item{display:flex;align-items:center;gap:18px;font-size:30px;font-weight:700;line-height:1.1}
+  .ladder__ico{flex:none;width:68px;height:68px;padding:13px;border-radius:50%;background:var(--lime);color:var(--ink)}
+
+  /* 06 thennow: lime field, a quiet "then" card next to the loud pink "now" card, rows aligned across both */
+  #thennow .lead{margin-top:18px}
+  .thennow__pair{margin-top:60px}
+  .thennow__then{grid-column:1 / 6}
+  .thennow__now{grid-column:6 / 13;background:var(--pink)}
+  #thennow .card{padding:50px 40px 22px}
+  #thennow ul{list-style:none;padding:0}
+  #thennow li{display:flex;align-items:center;gap:22px;height:102px;border-top:4px solid var(--ink)}
+  #thennow li:first-child{border-top:0}
+  .thennow__then li{font-size:40px;font-weight:600;color:var(--mute);border-top-color:rgba(26,26,26,.28)}
+  .thennow__then li span{text-decoration:line-through;text-decoration-thickness:5px;text-decoration-color:var(--magenta)}
+  .thennow__now li{font-family:var(--f-display);font-weight:800;font-size:58px;line-height:1;letter-spacing:-.03em}
+  .thennow__now li::before{content:"";flex:none;width:30px;height:30px;border-radius:50%;background:var(--lime);
+    border:var(--ln) solid var(--ink)}
+  .thennow__aside{font-family:var(--f-body);font-size:30px;font-weight:700;letter-spacing:0;margin-left:-4px}
+
+  /* 07 path: cream field, four tagged cards joined by arrow buttons on the seams */
+  #path .lead{margin-top:18px}
+  #path .cards{margin-top:62px}
+  .path__step{display:flex;flex-direction:column;gap:18px;padding:48px 24px 26px}
+  .path__step .frame__media{height:316px}
+  .path__step--check{border-style:dashed}
+  .path__step--buy{background:var(--pink)}
+  #path .path__step .body{font-size:28px;line-height:1.3;text-wrap:balance}
+  .path__step--buy .body{color:var(--ink)}
+  #path .mega{height:316px;font-size:300px;line-height:316px;text-align:center;-webkit-text-stroke:12px var(--ink);
+    text-shadow:10px 10px 0 var(--ink)}
+  .path__arrow{position:absolute;z-index:2;left:-53px;top:174px;width:64px;height:64px;padding:13px;border-radius:50%;
+    background:var(--ink);color:var(--cream)}
+
+  /* 08 listicle: pink field, the page itself as a tilted polaroid, five numbered reasons */
+  #listicle .lead{margin-top:18px}
+  .listicle__shot{position:absolute;right:128px;bottom:128px}
+  .listicle__shot .frame__media{width:528px;height:594px;background:#fff}
+  .listicle__points{margin-top:30px;width:1076px;display:grid;row-gap:20px}
+  .listicle__point{display:grid;grid-template-columns:64px minmax(0,1fr);column-gap:24px;align-items:center}
+  .listicle__no{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--lime);
+    border:var(--ln) solid var(--ink);box-shadow:5px 5px 0 var(--ink);font-family:var(--f-display);font-weight:800;font-size:34px;line-height:1}
+  .listicle__no--last{background:var(--ink);color:var(--cream);box-shadow:5px 5px 0 var(--magenta)}
+  .listicle__why{margin-top:6px;font-size:28px;font-weight:500;line-height:1.3}
+  .listicle__why b{font-weight:800}
+  /* ==== PART 1 END ==== */
+
+  /* ==== PART 2 START ==== */
+  /* shared by 10 and 12: a screenshot in a phone-style ink bezel */
+  .p2-shot{border:var(--ln-bold) solid var(--ink);border-radius:var(--r-card);overflow:hidden;background:var(--ink);
+    box-shadow:var(--drop) var(--drop) 0 var(--ink)}
+  .p2-shot img{width:100%;height:100%;object-fit:cover}
+
+  /* 09 pages: cream field, five tagged page cards, cold to warm */
+  #pages .lead{margin-top:18px}
+  #pages .lead b{font-weight:800;color:var(--ink)}
+  #pages .cards{margin-top:62px;gap:28px}
+  #pages .card{padding:46px 14px 16px}
+  #pages .card__tag{left:14px;font-size:36px}
+  #pages .frame__media{height:294px;background:#fff}
+  #pages .frame__media img{object-position:50% 0}
+  #pages .pages__fit img{object-fit:contain}
+  #pages .body{margin-top:12px;padding:0 4px;font-size:28px;line-height:1.25;text-wrap:balance}
+
+  /* 10 formats: lime field, one-line headline, six ads in a row */
+  #formats .h-2{white-space:nowrap}
+  .formats__lead{display:flex;align-items:center;gap:24px;margin-top:30px;white-space:nowrap}
+  .formats__ads{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:30px;margin-top:66px}
+  .formats__ad{position:relative;rotate:var(--rot,0deg)}
+  .formats__ad .p2-shot{aspect-ratio:9 / 16}
+  .formats__ad .pill{position:absolute;left:14px;bottom:-30px;font-size:32px;--rot:-2deg}
+
+  /* 11 testing: cream field, set-up steps on the left, verdict rows on the right */
+  #testing .lead{margin-top:18px}
+  .testing__board{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);column-gap:var(--gut);margin-top:40px}
+  .testing__col{display:flex;flex-direction:column;gap:24px}
+  .testing__col>.pill{align-self:flex-start;--rot:-2deg;--pill:var(--ink);color:var(--cream);box-shadow:8px 8px 0 var(--magenta)}
+  .testing__step,.testing__rule{display:flex;align-items:center;gap:24px;height:108px;padding:0 30px 2px;
+    border:var(--ln) solid var(--ink);border-radius:var(--r-card);box-shadow:8px 8px 0 var(--ink)}
+  .testing__step{background:var(--paper)}
+  .testing__n{flex:none;display:grid;place-items:center;width:64px;height:64px;padding-bottom:3px;border-radius:50%;
+    background:var(--pink);border:4px solid var(--ink);font-family:var(--f-display);font-weight:800;font-size:38px;line-height:1}
+  .testing__t,.testing__if{font-size:32px;font-weight:700;line-height:1.15;text-wrap:balance}
+  .testing__rule{justify-content:space-between;background:var(--tone,var(--lime))}
+  .testing__verdict{flex:none;font-family:var(--f-display);font-weight:800;font-size:72px;line-height:1;letter-spacing:-.03em}
+  .testing__rule--win{--tone:var(--pink)}
+  .testing__rule--kill{--tone:var(--ink);color:var(--cream);box-shadow:8px 8px 0 var(--magenta)}
+  .testing__note{font-size:28px;font-weight:500;line-height:1.3;color:var(--mute)}
+
+  /* 12 angles: pink field, a four-step chain from review to page */
+  #angles .lead{margin-top:18px;color:var(--ink)}
+  #angles .secnav{color:var(--ink)}
+  #angles .secnav .sep{color:var(--cream)}
+  #angles .card__tag{font-size:36px}
+  .angles__chain{display:flex;align-items:stretch;gap:16px;height:400px;margin-top:56px}
+  .angles__step{flex:1 1 0;display:flex;flex-direction:column;justify-content:space-between;padding:60px 34px 30px}
+  .angles__step--key{background:var(--lime)}
+  .angles__icon{width:84px;height:84px;overflow:visible;fill:var(--icon,var(--pink));stroke:var(--ink);stroke-width:1.5;
+    stroke-linejoin:round;stroke-linecap:round}
+  .angles__say{font-family:var(--f-display);font-weight:800;font-size:60px;line-height:1;letter-spacing:-.03em}
+  .angles__arrow{flex:none;align-self:center;width:60px;height:45px;fill:var(--ink)}
+  .angles__shot{position:relative;flex:none}
+  .angles__shot .p2-shot{height:100%}
+  .angles__shot .card__tag{left:20px}
+  .angles__shot--ad{width:234px}
+  .angles__shot--page{width:322px}
+  .angles__more{margin-top:44px;gap:14px}
+  .angles__also{margin-right:6px;font-weight:800}
+  .angles__more .pill{margin-left:auto;font-size:34px;--rot:-2deg}
+  /* ==== PART 2 END ==== */
+
+  /* ==== PART 3 START ==== */
+  /* Ink field (13, 17). Ink outlines and ink shadows vanish on ink, so stickers there
+     get a lime or pink hard shadow and the footer flips to light. */
+  #winners,#thanks{color:var(--cream)}   /* .slide>section outranks .bg-ink's text colour */
+  #winners .pageno,#thanks .pageno{background:var(--cream);color:var(--ink)}
+  #winners .secnav{color:color-mix(in srgb,var(--cream) 74%,var(--ink))}
+  #winners .secnav .is-on{background:var(--lime);color:var(--ink)}
+  #winners .secnav .sep{color:var(--pink)}
+  #winners .frame,#thanks .frame{color:var(--ink);box-shadow:16px 16px 0 var(--lime)}
+
+  /* 13 winners: ink field, statement left, phone-tall polaroid right */
+  #winners{grid-template-rows:minmax(0,1fr);align-items:center;padding-bottom:125px}
+  .winners__copy{grid-column:1 / 10;grid-row:1}
+  #winners .hl{color:var(--ink);box-shadow:8px 8px 0 var(--pink)}
+  #winners .lead{margin-top:34px;color:color-mix(in srgb,var(--cream) 82%,var(--ink))}
+  .winners__list{list-style:none;padding:0;margin-top:34px;display:flex;flex-direction:column;gap:20px;
+    font-size:var(--t-lead);font-weight:700;line-height:1.15}
+  .winners__list li{display:flex;align-items:center;gap:22px}
+  .winners__list li::before{content:"";flex:none;width:24px;height:24px;border-radius:7px;background:var(--pink);rotate:8deg}
+  .winners__frame{grid-column:9 / 13;grid-row:1;justify-self:end;width:436px;margin:30px 38px 0 0}
+  .winners__frame .frame__media{height:584px}
+  .winners__frame .frame__media img{object-position:50% 20%}
+  .winners__frame .frame__cap{position:relative;padding-top:50px}
+  .winners__now{position:absolute;left:-12px;top:-38px}
+
+  /* 14 beyond: lime field, statement, three levers */
+  #beyond{padding-bottom:125px}
+  #beyond .h-1 .line+.line{margin-top:.07em}
+  #beyond .lead{margin-top:22px;max-width:1240px;text-wrap:balance}
+  #beyond .cards{margin-top:auto}
+  #beyond .card{display:flex;flex-direction:column;gap:20px;padding:60px 40px 34px}
+  .beyond__icon{display:grid;place-items:center;width:100px;height:100px;border-radius:50%;background:var(--lime);
+    border:var(--ln) solid var(--ink);box-shadow:6px 6px 0 var(--ink);rotate:var(--rot,-6deg)}
+  .beyond__icon svg{width:56px;height:56px;fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+  /* 15 drill: cream field, formula bar, five numbered steps */
+  #drill{padding-bottom:125px}
+  #drill .lead{margin-top:18px}
+  .drill__formula{display:flex;align-items:center;justify-content:space-between;margin-top:38px;padding:24px 44px 28px;
+    font-family:var(--f-display);font-weight:800;font-size:68px;line-height:1;letter-spacing:-.03em;
+    background:var(--lime);border:var(--ln-bold) solid var(--ink);border-radius:var(--r-card);
+    box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+  .drill__op{display:grid;place-items:center;flex:none;width:64px;height:64px;border-radius:50%;
+    background:var(--ink);color:var(--cream);font-size:56px;line-height:1;letter-spacing:0}
+  #drill .cards{margin-top:auto}
+  #drill .card{display:flex;flex-direction:column;gap:12px;min-height:284px;padding:62px 24px 28px}
+  #drill .card .h-3,#close .card .h-3{font-stretch:88%}   /* five-up tiles: condensed like .stat__num */
+  #drill .card .body{font-size:28px;line-height:1.3}
+  .drill__num{position:absolute;left:22px;top:0;translate:0 -50%;display:grid;place-items:center;width:84px;height:84px;
+    border-radius:50%;background:var(--pink);border:var(--ln) solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    font-family:var(--f-display);font-weight:800;font-size:52px;line-height:1;color:var(--ink);rotate:var(--rot,-5deg)}
+  #drill .drill__last{background:var(--ink);color:var(--cream);box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+  #drill .drill__last .body{color:color-mix(in srgb,var(--cream) 82%,var(--ink))}
+  #drill .drill__last .drill__num{background:var(--lime)}
+
+  /* 16 close: the cover's pink field and lime column again, statement left, recap ladder right */
+  #close{--split:560px;display:flex;align-items:center}
+  .close__say{position:relative;font-size:160px}
+  .close__say .line:last-child{margin-top:.1em}
+  #close .mega{display:inline-block;font-size:1.32em;line-height:.8;-webkit-text-stroke-width:10px;
+    text-shadow:9px 9px 0 var(--ink);margin:.06em .06em .1em -.01em;vertical-align:baseline}
+  .close__steps{position:absolute;right:var(--m);top:50%;translate:0 -50%;width:424px;display:flex;flex-direction:column;gap:46px}
+  #close .card{padding:46px 30px 24px}
+  #close .card__tag{left:22px}
+  #close .close__always{background:var(--ink);color:var(--cream);box-shadow:var(--drop) var(--drop) 0 var(--magenta)}
+
+  /* 17 thanks: ink field, the portrait sticker from slide 2 again */
+  #thanks{align-items:center}
+  .thanks__portrait{grid-column:1 / 5;position:relative;width:500px;margin-left:22px}
+  .thanks__portrait .frame__media{height:440px}
+  .thanks__portrait .burst{position:absolute;right:-100px;bottom:-70px}
+  #thanks .burst__drop{fill:var(--cream)}
+  #thanks .burst__text{color:var(--ink)}
+  .thanks__copy{grid-column:5 / 13;padding-left:70px;gap:112px}
+  #thanks .mega{text-shadow:14px 14px 0 var(--pink)}
+  #thanks .chip{color:var(--ink)}
+  /* ==== PART 3 END ==== */
+
+  /* ---- 13. Print: every slide, no motion, one per page ---------------------- */
   @media print{html,body{overflow:visible;background:#fff}#ui{display:none}#stage{position:static;transform:none!important}
-    .slide{display:block;position:relative;page-break-after:always}}
+    .slide{display:block;position:relative;page-break-after:always}
+    .slide *{animation:none!important}}
 </style>
 </head>
 <body>
+<!-- Shape sprite: starburst badge, drawn once, reused by every .burst -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="shape-burst" viewBox="0 0 200 200">
+    <polygon points="100.0,6.0 115.4,22.5 136.0,13.2 143.9,34.3 166.5,33.5 165.7,56.1 186.8,64.0 177.5,84.6 194.0,100.0 177.5,115.4 186.8,136.0 165.7,143.9 166.5,166.5 143.9,165.7 136.0,186.8 115.4,177.5 100.0,194.0 84.6,177.5 64.0,186.8 56.1,165.7 33.5,166.5 34.3,143.9 13.2,136.0 22.5,115.4 6.0,100.0 22.5,84.6 13.2,64.0 34.3,56.1 33.5,33.5 56.1,34.3 64.0,13.2 84.6,22.5"/>
+  </symbol>
+  <symbol id="p1-arrow" viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="p1-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="p1-bulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></symbol>
+  <symbol id="p1-people" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="p2-star" viewBox="0 0 24 24">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/>
+  </symbol>
+  <symbol id="p2-bulb" viewBox="0 0 24 24">
+    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14z"/>
+    <path d="M9 18h6"/><path d="M10 22h4"/>
+  </symbol>
+  <symbol id="p2-arrow" viewBox="0 0 64 48">
+    <polygon points="3,14 31,14 31,3 61,24 31,45 31,34 3,34"/>
+  </symbol>
+  <symbol id="p3-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="p3-bulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></symbol>
+  <symbol id="p3-people" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+</svg>
 <div id="stage">
-<div class="slide"><section id="cover" data-transition="fade" style="display:flex; flex-direction:row; gap:72px; align-items:center; padding:128px; background:#fbf1d8">
-  <div style="display:flex; flex-direction:column; gap:36px; flex:1">
-    <h1 style="font-family:Inter, Arial, sans-serif; font-size:100px; font-weight:900; line-height:1.06; letter-spacing:-3px; color:#1a1a1a">How to scale Meta to <span style="color:#ff2a8e">$100k</span> a day</h1>
-    <p style="font-family:Newsreader, Georgia, serif; font-size:52px; font-style:italic; color:#5a5048">and be profitable</p>
+<div class="slide"><section id="cover" class="bg-pink grid" data-transition="fade">
+  <div class="split__block bg-lime a-wipe"></div>
+  <div class="cover__copy">
+    <h1 class="h-hero">
+      <span class="line a-rise">How to scale</span>
+      <span class="line a-rise" style="--d:.08s">Meta to</span>
+      <span class="mega a-pop" style="--d:.22s"><span class="mega__unit">$</span>100k</span>
+      <span class="line a-rise" style="--d:.38s">a day</span>
+    </h1>
+    <p class="cover__kicker pill pill--lime pill--xl a-land" style="--rot:-3deg;--d:.62s">and be profitable</p>
   </div>
-  <div style="width:860px; display:flex; flex-direction:column; gap:20px">
-    <img src="assets/scrat_search.gif" alt="Scrat from Ice Age sniffing around, searching everywhere" style="width:860px; height:356px; border-radius:32px">
-    <p style="font-family:Newsreader, Georgia, serif; font-size:34px; font-style:italic; color:#5a5048">Me, every day, hunting for the next winning ad</p>
-  </div>
-  
+  <figure class="cover__frame frame frame--halftone a-land" style="--rot:3deg;--d:.46s">
+    <div class="frame__media"><img src="assets/scrat_search.gif" alt="Scrat from Ice Age sniffing around, searching everywhere"></div>
+    <figcaption class="frame__cap">Me, every day, hunting for the next winning ad</figcaption>
+  </figure>
+  <p class="pageno">01</p>
 </section></div>
-<div class="slide"><section id="me" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:row;align-items:center;gap:80px">
-<img src="assets/momo.jpg" alt="Momo smiling in front of a yellow wall" style="width:520px;height:520px;object-fit:cover;border-radius:260px">
-<div style="flex:1;display:flex;flex-direction:column;gap:32px">
-<p style="font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#C8106A">Hi, I'm Momo</p>
-<h2 style="font-size:64px;font-weight:900;line-height:1.1;letter-spacing:-2px">I scaled Meta from &lt;$5k to $100k+ a day in 2 years</h2>
-<div style="display:flex;flex-direction:row;gap:24px">
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FF2A8E;padding:32px;border-radius:28px">
-<p style="font-size:64px;font-weight:900;letter-spacing:-2px">$100M</p>
-<p style="font-size:26px;font-weight:600">run rate this year</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#CCE245;padding:32px;border-radius:28px">
-<p style="font-size:64px;font-weight:900;letter-spacing:-2px">+250%</p>
-<p style="font-size:26px;font-weight:600">vs last year</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#1A1A1A;color:#FBF1D8;padding:32px;border-radius:28px">
-<p style="font-size:64px;font-weight:900;letter-spacing:-2px">$35M+</p>
-<p style="font-size:26px;font-weight:600">a year on Meta</p>
-</div>
-</div>
-<p style="font-size:30px;color:#5A5048">Co-founder, Care &amp; Bloom · ex-Roman media buyer · 7 years in paid ads</p>
-</div>
-
-</section></div>
-<div class="slide"><section id="ebit" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:48px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Profit is the goal. Spend is just the result.</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">We hold EBIT at 15–20%. Below 15%, fixing it comes before anything else.</p>
-</div>
-<div style="display:flex;flex-direction:row;height:200px">
-<div style="flex:15;display:flex;flex-direction:column;justify-content:center;gap:8px;background:#FF2A8E;padding:32px;border-radius:28px 0 0 28px">
-<p style="font-size:44px;font-weight:900">0–15%</p>
-<p style="font-size:28px;font-weight:600">Fire mode: cut and fix, every day</p>
-</div>
-<div style="flex:5;display:flex;flex-direction:column;justify-content:center;gap:8px;background:#CCE245;padding:32px">
-<p style="font-size:44px;font-weight:900">15–20%</p>
-<p style="font-size:28px;font-weight:600">Target: keep scaling</p>
-</div>
-<div style="flex:5;display:flex;flex-direction:column;justify-content:center;gap:8px;background:#1A1A1A;color:#FBF1D8;padding:32px;border-radius:0 28px 28px 0">
-<p style="font-size:44px;font-weight:900">20%+</p>
-<p style="font-size:28px;font-weight:600">Room to spend more</p>
-</div>
-</div>
-<div style="display:flex;flex-direction:row;gap:32px">
-<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:40px">
-<h3 style="font-size:36px;font-weight:800">Spend follows profit</h3>
-<p style="font-size:28px;line-height:1.4;color:#5A5048">We never chase "$100k a day". We spend as much as the profit allows.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:40px">
-<h3 style="font-size:36px;font-weight:800">No excuses</h3>
-<p style="font-size:28px;line-height:1.4;color:#5A5048">Seasonality is real. Blaming it is not a plan.</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C"><b><span style="color:#C8106A">The goal</span></b>  /  1 Funnel  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
-</section></div>
-<div class="slide"><section id="market" style="display:flex; flex-direction:column; gap:48px; padding:112px 128px 160px; background:#fbf1d8">
-  <div style="display:flex; flex-direction:column; gap:16px">
-    <h2 style="font-family:Inter, Arial, sans-serif; font-size:72px; font-weight:900; line-height:1.08; letter-spacing:-2px; color:#1a1a1a">Your market decides how high you can scale</h2>
-    <p style="font-family:Inter, Arial, sans-serif; font-size:34px; line-height:1.35; color:#5a5048">Same skills, very different ceiling. Pick the biggest market you can.</p>
-  </div>
-  <div style="display:flex; flex-direction:column; gap:16px">
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">Fashion</p>
-      <div style="display:flex; flex-direction:row; gap:14px">
-        <div style="width:930px; height:48px; display:flex; flex-direction:column; background:#cce245; border-radius:10px 0 0 10px">
-        </div>
-        <div style="width:56px; height:48px; display:flex; flex-direction:column; background:#cce245; border-radius:0 10px 10px 0">
-        </div>
+<div class="slide"><section id="me" class="bg-lime stack">
+  <div class="me__top grid">
+    <div class="me__portrait">
+      <figure class="frame a-land" style="--rot:-4deg;--d:.05s">
+        <div class="frame__media"><img src="assets/momo.jpg" alt="Momo smiling in front of a yellow wall"></div>
+      </figure>
+      <div class="burst a-land" style="--size:264px;--rot:9deg;--d:.4s">
+        <svg viewBox="0 0 200 200" aria-hidden="true"><use class="burst__drop" href="#shape-burst"/><use class="burst__face" href="#shape-burst"/></svg>
+        <p class="burst__text">Hi, I'm <br>Momo</p>
       </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">$1.8T</p>
     </div>
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">Supplements</p>
-      <div style="width:1000px; height:48px; display:flex; flex-direction:column; background:#cce245; border-radius:10px">
-      </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">$210B</p>
-    </div>
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">GLP-1</p>
-      <div style="width:300px; height:48px; display:flex; flex-direction:column; background:#cce245; border-radius:10px">
-      </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">$63B</p>
-    </div>
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">Sex toys <span style="color:#c8106a">(us)</span></p>
-      <div style="width:222px; height:48px; display:flex; flex-direction:column; background:#ff2a8e; border-radius:10px">
-      </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">$46B</p>
-    </div>
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">Matcha</p>
-      <div style="width:22px; height:48px; display:flex; flex-direction:column; background:#1a1a1a; border-radius:10px">
-      </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">$4B</p>
-    </div>
-    <div style="display:flex; flex-direction:row; gap:28px; align-items:center">
-      <p style="width:440px; font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:700; color:#1a1a1a">Gluten-free bread, HK</p>
-      <div style="width:6px; height:48px; display:flex; flex-direction:column; background:#9a8f7e; border-radius:10px">
-      </div>
-      <p style="font-family:Inter, Arial, sans-serif; font-size:30px; font-weight:800; color:#1a1a1a">Will never hit $100k a day</p>
+    <div class="me__intro stack">
+      <h2 class="h-2 a-rise" style="--d:.15s">
+        <span class="line">I scaled Meta from</span>
+        <span class="line">&lt;$5k to <span class="hl hl--cream">$100k+</span> a day</span>
+        <span class="line">in 2 years</span>
+      </h2>
+      <p class="chips a-rise" style="--d:.3s"><span class="chip">Co-founder, Care &amp; Bloom</span> <span class="dot">·</span> <span class="chip">ex-Roman media buyer</span> <span class="dot">·</span> <span class="chip">7 years in paid ads</span></p>
     </div>
   </div>
-  <div style="display:flex; flex-direction:row; gap:32px; align-items:center">
-    <p style="padding:20px 36px; font-family:Inter, Arial, sans-serif; font-size:32px; font-weight:700; color:#fbf1d8; background:#1a1a1a; border-radius:256px">Small market? Make it bigger first: new products, new categories.</p>
+  <div class="stats">
+    <div class="stat stat--pink a-pop" style="--d:.5s">
+      <p class="stat__num">$100M</p>
+      <p class="stat__label">run rate this year</p>
+    </div>
+    <div class="stat stat--cream a-pop" style="--d:.6s">
+      <p class="stat__num">+250%</p>
+      <p class="stat__label">vs last year</p>
+    </div>
+    <div class="stat stat--ink a-pop" style="--d:.7s">
+      <p class="stat__num">$35M+</p>
+      <p class="stat__label">a year on Meta</p>
+    </div>
   </div>
-  <p style="position:absolute; bottom:64px; left:128px; width:1664px; font-family:Inter, Arial, sans-serif; font-size:24px; letter-spacing:1px; color:#7a6e5c"><span style="color:#c8106a"><b>The goal</b></span> / 1 Funnel / 2 Ads engine / 3 New angles / 4 Beyond Meta / Staying profitable</p>
-  
+  <p class="pageno">02</p>
 </section></div>
-<div class="slide"><section id="ladder" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 128px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Each jump in spend needed a different unlock</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">Under $5k to $100k+ a day in two years. This is the map for the rest of the talk.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;align-items:end;gap:24px">
-<div style="flex:1;height:300px;display:flex;flex-direction:column;gap:10px;background:#F6DEE9;padding:28px;border-radius:28px 28px 0 0">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase">Step 1</p>
-<p style="font-size:40px;font-weight:900">$5k → $30k</p>
-<p style="font-size:28px;line-height:1.3">One winning funnel</p>
-<img src="assets/lem_listicle.png" alt="Our first winning listicle" style="width:342px;height:80px;object-fit:cover;border-radius:12px">
-</div>
-<div style="flex:1;height:380px;display:flex;flex-direction:column;gap:10px;background:#FF8FC0;padding:28px;border-radius:28px 28px 0 0">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase">Step 2</p>
-<p style="font-size:40px;font-weight:900">$30k → $50k</p>
-<p style="font-size:28px;line-height:1.3">The ads engine</p>
-<img src="assets/montage.jpg" alt="Three of our ads in different formats" style="width:342px;height:160px;object-fit:cover;border-radius:12px">
-</div>
-<div style="flex:1;height:470px;display:flex;flex-direction:column;gap:10px;background:#FF2A8E;padding:28px;border-radius:28px 28px 0 0">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase">Step 3</p>
-<p style="font-size:40px;font-weight:900">$50k → $100k</p>
-<p style="font-size:28px;line-height:1.3">New angles, new markets</p>
-<img src="assets/lp_meno.jpg" alt="Our menopause landing page" style="width:342px;height:250px;object-fit:cover;border-radius:12px">
-</div>
-<div style="flex:1;height:560px;display:flex;flex-direction:column;gap:10px;background:#1A1A1A;color:#FBF1D8;padding:28px;border-radius:28px 28px 0 0">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#CCE245">Step 4</p>
-<p style="font-size:40px;font-weight:900">$100k+</p>
-<p style="font-size:28px;line-height:1.3">Beyond Meta</p>
-<p style="font-size:24px;font-weight:700;color:#1A1A1A;background:#CCE245;padding:6px 14px;border-radius:999px">Start building at $30k</p>
-<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px">
-<div style="display:flex;flex-direction:row;align-items:center;gap:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:44px;height:44px;color:#CCE245"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><p style="font-size:26px">More channels</p></div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:44px;height:44px;color:#CCE245"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg><p style="font-size:26px">More products</p></div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:44px;height:44px;color:#CCE245"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><p style="font-size:26px">Partners &amp; creators</p></div>
-</div>
-</div>
-</div>
-
+<div class="slide"><section id="ebit" class="bg-cream">
+  <h2 class="h-1">
+    <span class="line a-rise"><span class="hl hl--lime">Profit</span> is the goal.</span>
+    <span class="line a-rise" style="--d:.1s">Spend is just the result.</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.2s">We hold EBIT at 15–20%. Below 15%, fixing it comes before anything else.</p>
+  <div class="band">
+    <div class="band__zone zone--pink">
+      <p class="band__range">0–15%</p>
+      <p class="band__label">Fire mode: cut and fix, every day</p>
+    </div>
+    <div class="band__zone zone--lime">
+      <p class="band__range">15–20%</p>
+      <p class="band__label">Target: keep scaling</p>
+    </div>
+    <div class="band__zone zone--ink">
+      <p class="band__range">20%+</p>
+      <p class="band__label">Room to spend more</p>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card a-pop" style="--d:.6s">
+      <h3 class="card__tag pill pill--pink">Spend follows profit</h3>
+      <p class="body">We never chase "$100k a day". We spend as much as the profit allows.</p>
+    </div>
+    <div class="card a-pop" style="--d:.68s">
+      <h3 class="card__tag pill pill--lime">No excuses</h3>
+      <p class="body">Seasonality is real. Blaming it is not a plan.</p>
+    </div>
+  </div>
+  <p class="secnav"><span class="is-on">The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">03</p>
 </section></div>
-<div class="slide"><section id="thennow" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:48px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Meta finds the buyer now. Your job is what they see.</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">Seven years ago, settings were the edge. Today it's the ad, the page and the offer.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:32px">
-<div style="flex:1;display:flex;flex-direction:column;gap:24px;background:#EFE4C8;border-radius:32px;padding:48px">
-<p style="font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#7A6E5C">Then: the edge was settings</p>
-<ul style="font-size:38px;line-height:1.6;color:#7A6E5C;text-decoration:line-through">
-<li>Interest targeting</li>
-<li>Age and gender splits</li>
-<li>Lookalike audiences</li>
-<li>Bidding tricks</li>
-</ul>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:24px;background:#FF2A8E;border-radius:32px;padding:48px">
-<p style="font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase">Now: the edge is what they see</p>
-<ul style="font-size:38px;line-height:1.6;font-weight:700">
-<li>The ad (it does the targeting)</li>
-<li>The landing page</li>
-<li>The offer</li>
-<li>The website</li>
-</ul>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  <b><span style="color:#C8106A">1 Funnel</span></b>  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="market" class="bg-pink">
+  <h2 class="h-2">
+    <span class="line a-rise">Your <span class="hl hl--lime">market</span> decides</span>
+    <span class="line a-rise" style="--d:.08s">how high you can scale</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.16s">Same skills, very different ceiling. Pick the biggest market you can.</p>
+  <div class="market__chart card a-pop" style="--d:.24s">
+    <div class="market__row">
+      <p class="market__name">Fashion</p>
+      <div class="market__track"><span class="market__bar market__bar--cut" style="--v:1000;--d:.4s"></span><p class="market__val">$1.8T</p></div>
+    </div>
+    <div class="market__row">
+      <p class="market__name">Supplements</p>
+      <div class="market__track"><span class="market__bar" style="--v:1000;--d:.46s"></span><p class="market__val">$210B</p></div>
+    </div>
+    <div class="market__row">
+      <p class="market__name">GLP-1</p>
+      <div class="market__track"><span class="market__bar" style="--v:300;--d:.52s"></span><p class="market__val">$63B</p></div>
+    </div>
+    <div class="market__row">
+      <p class="market__name">Sex toys <span class="pill pill--pink market__us">(us)</span></p>
+      <div class="market__track"><span class="market__bar market__bar--us" style="--v:222;--d:.58s"></span><p class="market__val">$46B</p></div>
+    </div>
+    <div class="market__row">
+      <p class="market__name">Matcha</p>
+      <div class="market__track"><span class="market__bar" style="--v:22;--d:.64s"></span><p class="market__val">$4B</p></div>
+    </div>
+    <div class="market__row">
+      <p class="market__name">Gluten-free bread, HK</p>
+      <div class="market__track"><span class="market__bar" style="--v:10;--d:.7s"></span><p class="pill market__never">Will never hit $100k a day</p></div>
+    </div>
+    <div class="market__tip card a-land" style="--d:.75s">
+      <p class="body"><span class="card__tag pill pill--lime">Small market?</span> Make it bigger first: new products, new categories.</p>
+    </div>
+  </div>
+  <p class="secnav"><span class="is-on">The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">04</p>
 </section></div>
-<div class="slide"><section id="path" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Every sale goes through four steps. Fix all four.</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">Most teams only work on the ad. The money is made across the whole path.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;align-items:stretch;gap:16px">
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<h3 style="font-size:36px;font-weight:800">1. Ad</h3>
-<img src="assets/ad_purple_sq.jpg" alt="Our ad: So good. You'll scream." style="width:298px;height:298px;object-fit:cover;border-radius:16px">
-<p style="font-size:26px;line-height:1.3;color:#5A5048">Stop the scroll. Make them curious.</p>
-</div>
-<svg width="56" height="28" viewBox="0 0 56 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="44" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="40,5 56,14 40,23" fill="currentColor"/></svg>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<h3 style="font-size:36px;font-weight:800">2. Landing page</h3>
-<img src="assets/lp_zenify.jpg" alt="Our listicle: 7 suction toys so good, you'll want to cheat" style="width:298px;height:298px;object-fit:contain;background:#FFFFFF;border-radius:16px">
-<p style="font-size:26px;line-height:1.3;color:#5A5048">Teach them. Get them excited.</p>
-</div>
-<svg width="56" height="28" viewBox="0 0 56 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="44" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="40,5 56,14 40,23" fill="currentColor"/></svg>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px dashed #C9BB9A;border-radius:28px;padding:24px">
-<h3 style="font-size:36px;font-weight:800">3. Website</h3>
-<img src="assets/pdp.jpg" alt="Our product page: 19,390 reviews, as seen in press, clinically recognized" style="object-position:50% 82%;width:298px;height:298px;object-fit:cover;border-radius:16px">
-<p style="font-size:26px;line-height:1.3;color:#5A5048">The trust check: reviews, press, clinical proof.</p>
-</div>
-<svg width="56" height="28" viewBox="0 0 56 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="44" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="40,5 56,14 40,23" fill="currentColor"/></svg>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FF2A8E;border-radius:28px;padding:24px">
-<h3 style="font-size:36px;font-weight:800">4. Purchase</h3>
-<div style="height:298px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FF6FB0;border-radius:16px">
-<p style="font-size:96px;font-weight:900">$</p>
-</div>
-<p style="font-size:26px;line-height:1.3">Where the profit is made.</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  <b><span style="color:#C8106A">1 Funnel</span></b>  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="ladder" class="bg-cream">
+  <h2 class="h-2">
+    <span class="line a-rise">Each jump in spend</span>
+    <span class="line a-rise" style="--d:.08s">needed a different <span class="hl hl--lime">unlock</span></span>
+  </h2>
+  <p class="lead a-rise" style="--d:.16s"><span class="line">Under $5k to $100k+ a day in two years.</span> <span class="line">This is the map for the rest of the talk.</span></p>
+  <div class="ladder__steps">
+    <div class="ladder__step card a-pop" style="--h:372px;--d:.3s">
+      <p class="card__tag pill pill--lime">Step 1</p>
+      <p class="ladder__range">$5k <span class="ladder__to">→</span> $30k</p>
+      <p class="ladder__what">One winning funnel</p>
+      <figure class="frame__media ladder__zoom" style="--shot:172px"><img src="assets/lem_listicle.png" alt="Our first winning listicle"></figure>
+    </div>
+    <div class="ladder__step ladder__step--lime card a-pop" style="--h:462px;--d:.4s">
+      <p class="card__tag pill pill--pink">Step 2</p>
+      <p class="ladder__range">$30k <span class="ladder__to">→</span> $50k</p>
+      <p class="ladder__what">The ads engine</p>
+      <figure class="frame__media" style="--shot:240px"><img src="assets/montage.jpg" alt="Three of our ads in different formats"></figure>
+    </div>
+    <div class="ladder__step ladder__step--pink card a-pop" style="--h:552px;--d:.5s">
+      <p class="card__tag pill pill--cream">Step 3</p>
+      <p class="ladder__range">$50k <span class="ladder__to">→</span> $100k</p>
+      <p class="ladder__what">New angles, new markets</p>
+      <figure class="frame__media" style="--shot:352px"><img src="assets/lp_meno.jpg" alt="Our menopause landing page"></figure>
+    </div>
+    <div class="ladder__step ladder__step--ink card a-pop" style="--h:642px;--d:.6s">
+      <p class="card__tag pill pill--lime">Step 4</p>
+      <p class="ladder__range">$100k+</p>
+      <p class="ladder__what">Beyond Meta</p>
+      <p class="ladder__when pill pill--lime a-land" style="--rot:-2deg;--d:.75s">Start building at $30k</p>
+      <div class="ladder__more">
+        <div class="ladder__item"><span class="ladder__ico"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-globe"/></svg></span><p>More channels</p></div>
+        <div class="ladder__item"><span class="ladder__ico"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-bulb"/></svg></span><p>More products</p></div>
+        <div class="ladder__item"><span class="ladder__ico"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-people"/></svg></span><p>Partners &amp; creators</p></div>
+      </div>
+    </div>
+  </div>
+  <p class="pageno">05</p>
 </section></div>
-<div class="slide"><section id="listicle" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">One listicle took us from $5k to $30k a day</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">It reads like an honest review, not an ad. Here's why it works.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:64px">
-<img src="assets/lem_listicle.png" alt="Our listicle ranking Lem as the best suction toy" style="width:500px;height:564px;object-fit:cover;background:#FFFFFF;border-radius:20px;box-shadow:0 20px 56px rgba(26,26,26,0.18)">
-<div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
-<div style="display:flex;flex-direction:row;align-items:center;gap:28px">
-<p style="width:64px;height:64px;font-size:32px;font-weight:900;text-align:center;line-height:2;background:#FF2A8E;border-radius:32px">1</p>
-<div style="flex:1;display:flex;flex-direction:column;gap:4px"><p style="font-size:34px;font-weight:800">Ranked #1 of 7</p><p style="font-size:26px;color:#5A5048">"Best overall, 9.5/10." Comparing builds trust.</p></div>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:28px">
-<p style="width:64px;height:64px;font-size:32px;font-weight:900;text-align:center;line-height:2;background:#FF2A8E;border-radius:32px">2</p>
-<div style="flex:1;display:flex;flex-direction:column;gap:4px"><p style="font-size:34px;font-weight:800">A price anchor</p><p style="font-size:26px;color:#5A5048">"$89, originally $159"</p></div>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:28px">
-<p style="width:64px;height:64px;font-size:32px;font-weight:900;text-align:center;line-height:2;background:#FF2A8E;border-radius:32px">3</p>
-<div style="flex:1;display:flex;flex-direction:column;gap:4px"><p style="font-size:34px;font-weight:800">Answers the real doubt</p><p style="font-size:26px;color:#5A5048">"I didn't want to fall for the hype..." It says what skeptics think.</p></div>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:28px">
-<p style="width:64px;height:64px;font-size:32px;font-weight:900;text-align:center;line-height:2;background:#FF2A8E;border-radius:32px">4</p>
-<div style="flex:1;display:flex;flex-direction:column;gap:4px"><p style="font-size:34px;font-weight:800">Honest "flaws"</p><p style="font-size:26px;color:#5A5048">"Tends to sell out." A flaw that sells.</p></div>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:28px">
-<p style="width:64px;height:64px;font-size:32px;font-weight:900;text-align:center;line-height:2;background:#1A1A1A;color:#FBF1D8;border-radius:32px">5</p>
-<div style="flex:1;display:flex;flex-direction:column;gap:4px"><p style="font-size:34px;font-weight:800">One clear next step</p><p style="font-size:26px;color:#5A5048">"Buy from the official site"</p></div>
-</div>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  <b><span style="color:#C8106A">1 Funnel</span></b>  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="thennow" class="bg-lime">
+  <h2 class="h-2">
+    <span class="line a-rise">Meta finds the buyer now.</span>
+    <span class="line a-rise" style="--d:.08s">Your job is <span class="hl hl--pink">what they see.</span></span>
+  </h2>
+  <p class="lead a-rise" style="--d:.16s">Seven years ago, settings were the edge. Today it's the ad, the page and the offer.</p>
+  <div class="thennow__pair grid">
+    <div class="thennow__then card a-pop" style="--d:.3s">
+      <p class="card__tag pill pill--cream">Then: the edge was settings</p>
+      <ul>
+        <li><span>Interest targeting</span></li>
+        <li><span>Age and gender splits</span></li>
+        <li><span>Lookalike audiences</span></li>
+        <li><span>Bidding tricks</span></li>
+      </ul>
+    </div>
+    <div class="thennow__now card a-pop" style="--d:.45s">
+      <p class="card__tag pill pill--lime">Now: the edge is what they see</p>
+      <ul>
+        <li>The ad <span class="thennow__aside">(it does the targeting)</span></li>
+        <li>The landing page</li>
+        <li>The offer</li>
+        <li>The website</li>
+      </ul>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span class="is-on">1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">06</p>
 </section></div>
-<div class="slide"><section id="pages" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Match the page to how cold the buyer is</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">35–45% of our Meta spend goes to landing pages (50%+ when we were new). Every page must continue the ad's story.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:24px">
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<img src="assets/lp_zenify.jpg" alt="Our listicle page" style="width:261px;height:290px;object-fit:contain;background:#FFFFFF;border-radius:16px">
-<h3 style="font-size:32px;font-weight:800">Listicle</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Cold buyers comparing options</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<img src="assets/lp_stress.jpg" alt="Our burnout advertorial page" style="width:261px;height:290px;object-fit:cover;background:#FFFFFF;border-radius:16px">
-<h3 style="font-size:32px;font-weight:800">Advertorial</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Cold buyers who need it explained</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<img src="assets/offer.jpg" alt="Our offer page: cheaper than a bad date" style="object-position:50% 0%;width:261px;height:290px;object-fit:cover;background:#FFFFFF;border-radius:16px">
-<h3 style="font-size:32px;font-weight:800">Offer page</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Simple product, strong deal</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<img src="assets/quiz.jpg" alt="Our 1-minute quiz page" style="object-position:50% 0%;width:261px;height:290px;object-fit:cover;background:#FFFFFF;border-radius:16px">
-<h3 style="font-size:32px;font-weight:800">Quiz</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Many products, unsure buyers</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:24px">
-<img src="assets/pdp.jpg" alt="Our Lem product page" style="object-position:50% 0%;width:261px;height:290px;object-fit:cover;background:#FFFFFF;border-radius:16px">
-<h3 style="font-size:32px;font-weight:800">Product page</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Warm buyers who already know you</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  <b><span style="color:#C8106A">1 Funnel</span></b>  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="path" class="bg-cream">
+  <h2 class="h-2">
+    <span class="line a-rise">Every sale goes through</span>
+    <span class="line a-rise" style="--d:.08s">four steps. <span class="hl hl--lime">Fix all four.</span></span>
+  </h2>
+  <p class="lead a-rise" style="--d:.16s">Most teams only work on the ad. The money is made across the whole path.</p>
+  <div class="cards" style="--n:4">
+    <div class="path__step card a-pop" style="--d:.3s">
+      <h3 class="card__tag pill pill--lime">1. Ad</h3>
+      <figure class="frame__media"><img src="assets/ad_purple_sq.jpg" alt="Our ad: So good. You'll scream."></figure>
+      <p class="body"><span class="nb">Stop the scroll.</span> <span class="nb">Make them curious.</span></p>
+    </div>
+    <div class="path__step card a-pop" style="--d:.42s">
+      <span class="path__arrow"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-arrow"/></svg></span>
+      <h3 class="card__tag pill pill--lime">2. Landing page</h3>
+      <figure class="frame__media" style="background:#fff"><img src="assets/lp_zenify.jpg" alt="Our listicle: 7 suction toys so good, you'll want to cheat" style="object-fit:contain"></figure>
+      <p class="body"><span class="nb">Teach them.</span> <span class="nb">Get them excited.</span></p>
+    </div>
+    <div class="path__step path__step--check card a-pop" style="--d:.54s">
+      <span class="path__arrow"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-arrow"/></svg></span>
+      <h3 class="card__tag pill pill--lime">3. Website</h3>
+      <figure class="frame__media"><img src="assets/pdp.jpg" alt="Our product page: 19,390 reviews, as seen in press, clinically recognized" style="object-position:50% 95%"></figure>
+      <p class="body">The trust check: reviews, press, clinical proof.</p>
+    </div>
+    <div class="path__step path__step--buy card a-pop" style="--d:.66s">
+      <span class="path__arrow"><svg class="p1-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#p1-arrow"/></svg></span>
+      <h3 class="card__tag pill pill--lime">4. Purchase</h3>
+      <p class="mega">$</p>
+      <p class="body">Where the profit is made.</p>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span class="is-on">1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">07</p>
 </section></div>
-<div class="slide"><section id="formats" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Make every angle in every format</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">At our peak: <b>1,000+ new ads a week.</b> AI makes them fast. You bring the taste.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:24px">
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_website_0.jpg" alt="Static ad: You're not broken" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">Static</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_zenify_3.jpg" alt="Comparison ad: Team Yellow vs Team Purple" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">Comparison</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_website_1.jpg" alt="Creator video unboxing" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">Creator video</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_website_3.jpg" alt="POV text video ad" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">POV text</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_zenify_1.jpg" alt="Advertorial-style ad: The tiny yellow thing eating my TikTok feed" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">Article ad</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px">
-<img src="assets/ad_manus_2.jpg" alt="VSL with an older woman: After the divorce" style="width:257px;height:440px;object-fit:cover;border-radius:20px">
-<p style="font-size:28px;font-weight:800">VSL</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  1 Funnel  /  <b><span style="color:#C8106A">2 Ads engine</span></b>  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="listicle" class="bg-pink">
+  <h2 class="h-2">
+    <span class="line a-rise">One listicle took us from</span>
+    <span class="line a-rise" style="--d:.08s"><span class="hl hl--cream">$5k to $30k</span> a day</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.16s"><span class="line">It reads like an honest review, not an ad.</span> <span class="line">Here's why it works.</span></p>
+  <div class="listicle__points">
+    <div class="listicle__point a-rise" style="--d:.3s">
+      <p class="listicle__no">1</p>
+      <div><p class="h-3">Ranked #1 of 7</p><p class="listicle__why"><b>"Best overall, 9.5/10."</b> Comparing builds trust.</p></div>
+    </div>
+    <div class="listicle__point a-rise" style="--d:.38s">
+      <p class="listicle__no">2</p>
+      <div><p class="h-3">A price anchor</p><p class="listicle__why"><b>"$89, originally $159"</b></p></div>
+    </div>
+    <div class="listicle__point a-rise" style="--d:.46s">
+      <p class="listicle__no">3</p>
+      <div><p class="h-3">Answers the real doubt</p><p class="listicle__why"><b>"I didn't want to fall for the hype..."</b> It says what skeptics think.</p></div>
+    </div>
+    <div class="listicle__point a-rise" style="--d:.54s">
+      <p class="listicle__no">4</p>
+      <div><p class="h-3">Honest "flaws"</p><p class="listicle__why"><b>"Tends to sell out."</b> A flaw that sells.</p></div>
+    </div>
+    <div class="listicle__point a-rise" style="--d:.62s">
+      <p class="listicle__no listicle__no--last">5</p>
+      <div><p class="h-3">One clear next step</p><p class="listicle__why"><b>"Buy from the official site"</b></p></div>
+    </div>
+  </div>
+  <figure class="listicle__shot frame a-land" style="--rot:3deg;--d:.4s">
+    <div class="frame__media"><img src="assets/lem_listicle.png" alt="Our listicle ranking Lem as the best suction toy"></div>
+  </figure>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span class="is-on">1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">08</p>
 </section></div>
-<div class="slide"><section id="testing" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Test small, then let the numbers decide</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">Campaign setup matters less now. This is the simple structure we use.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:56px">
-<div style="width:600px;display:flex;flex-direction:column;gap:20px">
-<p style="font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#C8106A">Set up</p>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:28px 32px">
-<p style="font-size:44px;font-weight:900;color:#FF2A8E">1</p>
-<p style="font-size:32px;font-weight:600">One campaign per angle</p>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:28px 32px">
-<p style="font-size:44px;font-weight:900;color:#FF2A8E">2</p>
-<p style="font-size:32px;font-weight:600">ABO ad sets, mixed formats</p>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:28px 32px">
-<p style="font-size:44px;font-weight:900;color:#FF2A8E">3</p>
-<p style="font-size:32px;font-weight:600">Budget: 1–1.5x your CPA a day</p>
-</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:20px">
-<p style="font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#C8106A">Then decide</p>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#CCE245;border-radius:28px;padding:28px 32px">
-<p style="flex:1;font-size:30px;font-weight:600">10+ sales at a scalable ROAS</p>
-<p style="font-size:40px;font-weight:900">Scale</p>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#FF2A8E;border-radius:28px;padding:28px 32px">
-<p style="flex:1;font-size:30px;font-weight:600">50+ sales: make variations and its own page</p>
-<p style="font-size:40px;font-weight:900">Winner</p>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:24px;background:#1A1A1A;color:#FBF1D8;border-radius:28px;padding:28px 32px">
-<p style="flex:1;font-size:30px;font-weight:600">Neither</p>
-<p style="font-size:40px;font-weight:900">Kill</p>
-</div>
-<p style="font-size:26px;color:#5A5048">Scalable = above your break-even. Work yours out from your margins.</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  1 Funnel  /  <b><span style="color:#C8106A">2 Ads engine</span></b>  /  3 New angles  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="pages" class="bg-cream">
+  <h2 class="h-2">
+    <span class="line a-rise">Match the page to how</span>
+    <span class="line a-rise" style="--d:.08s"><span class="hl hl--lime">cold</span> the buyer is</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.18s"><span class="line"><b>35–45%</b> of our Meta spend goes to landing pages (50%+ when we were new).</span> <span class="line">Every page must continue the ad's story.</span></p>
+  <div class="cards" style="--n:5">
+    <div class="card a-pop" style="--d:.3s">
+      <h3 class="card__tag pill pill--lime">Listicle</h3>
+      <div class="frame__media pages__fit"><img src="assets/lp_zenify.jpg" alt="Our listicle page"></div>
+      <p class="body">Cold buyers comparing options</p>
+    </div>
+    <div class="card a-pop" style="--d:.38s">
+      <h3 class="card__tag pill pill--lime">Advertorial</h3>
+      <div class="frame__media"><img src="assets/lp_stress.jpg" alt="Our burnout advertorial page"></div>
+      <p class="body">Cold buyers who need it explained</p>
+    </div>
+    <div class="card a-pop" style="--d:.46s">
+      <h3 class="card__tag pill pill--cream">Offer page</h3>
+      <div class="frame__media"><img src="assets/offer.jpg" alt="Our offer page: cheaper than a bad date"></div>
+      <p class="body">Simple product, strong deal</p>
+    </div>
+    <div class="card a-pop" style="--d:.54s">
+      <h3 class="card__tag pill pill--cream">Quiz</h3>
+      <div class="frame__media"><img src="assets/quiz.jpg" alt="Our 1-minute quiz page"></div>
+      <p class="body">Many products, unsure buyers</p>
+    </div>
+    <div class="card a-pop" style="--d:.62s">
+      <h3 class="card__tag pill pill--pink">Product page</h3>
+      <div class="frame__media"><img src="assets/pdp.jpg" alt="Our Lem product page"></div>
+      <p class="body">Warm buyers who already know you</p>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span class="is-on">1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">09</p>
 </section></div>
-<div class="slide"><section id="angles" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Your best angles are already in your reviews</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">Menopause came from our reviews. It opened a new market: older women with more to spend.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;align-items:center;gap:16px">
-<div style="flex:1;height:400px;display:flex;flex-direction:column;justify-content:center;gap:20px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:36px">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:72px;height:72px;color:#FF2A8E"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">1. Reviews</p>
-<p style="font-size:34px;font-weight:800;line-height:1.2">Women keep mentioning menopause</p>
-</div>
-<svg width="48" height="28" viewBox="0 0 48 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="36" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="32,5 48,14 32,23" fill="currentColor"/></svg>
-<div style="flex:1;height:400px;display:flex;flex-direction:column;justify-content:center;gap:20px;background:#FF2A8E;border-radius:28px;padding:36px">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:72px;height:72px;color:#1A1A1A"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase">2. Angle</p>
-<p style="font-size:34px;font-weight:800;line-height:1.2">Pleasure after menopause</p>
-</div>
-<svg width="48" height="28" viewBox="0 0 48 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="36" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="32,5 48,14 32,23" fill="currentColor"/></svg>
-<div style="width:250px;display:flex;flex-direction:column;gap:12px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">3. Ad</p>
-<img src="assets/ad_manus_0.jpg" alt="Our ad featuring an older woman" style="width:250px;height:400px;object-fit:cover;border-radius:20px">
-</div>
-<svg width="48" height="28" viewBox="0 0 48 28" style="flex-shrink:0;align-self:center;color:#1A1A1A"><line x1="0" y1="14" x2="36" y2="14" stroke="currentColor" stroke-width="4"/><polygon points="32,5 48,14 32,23" fill="currentColor"/></svg>
-<div style="width:300px;display:flex;flex-direction:column;gap:12px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">4. Page</p>
-<img src="assets/lp_meno.jpg" alt="Our menopause landing page" style="width:300px;height:400px;object-fit:cover;border-radius:20px">
-</div>
-</div>
-<div style="display:flex;flex-direction:row;align-items:center;gap:16px">
-<p style="font-size:26px;font-weight:700;color:#7A6E5C">Also look at:</p>
-<p style="font-size:26px;font-weight:700;background:#F6DEE9;padding:12px 24px;border-radius:999px">Reddit and X</p>
-<p style="font-size:26px;font-weight:700;background:#F6DEE9;padding:12px 24px;border-radius:999px">Competitor reviews</p>
-<p style="font-size:26px;font-weight:700;background:#F6DEE9;padding:12px 24px;border-radius:999px">Dropshipper ads</p>
-<p style="font-size:26px;font-weight:700;background:#1A1A1A;color:#FBF1D8;padding:12px 24px;border-radius:999px">Tip: have Claude read them all</p>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  1 Funnel  /  2 Ads engine  /  <b><span style="color:#C8106A">3 New angles</span></b>  /  4 Beyond Meta  /  Staying profitable</p>
-
+<div class="slide"><section id="formats" class="bg-lime">
+  <h2 class="h-2 a-rise">Make every angle in <span class="hl hl--cream">every format</span></h2>
+  <p class="lead formats__lead a-rise" style="--d:.12s">At our peak: <b class="pill pill--pink pill--xl a-land" style="--rot:-2deg;--d:.3s">1,000+ new ads a week.</b> AI makes them fast. You bring the taste.</p>
+  <div class="formats__ads">
+    <figure class="formats__ad a-land" style="--rot:-1.5deg;--d:.36s">
+      <div class="p2-shot"><img src="assets/ad_website_0.jpg" alt="Static ad: You're not broken"></div>
+      <figcaption class="pill pill--cream">Static</figcaption>
+    </figure>
+    <figure class="formats__ad a-land" style="--rot:1deg;--d:.43s">
+      <div class="p2-shot"><img src="assets/ad_zenify_3.jpg" alt="Comparison ad: Team Yellow vs Team Purple"></div>
+      <figcaption class="pill pill--cream">Comparison</figcaption>
+    </figure>
+    <figure class="formats__ad a-land" style="--rot:-1deg;--d:.5s">
+      <div class="p2-shot"><img src="assets/ad_website_1.jpg" alt="Creator video unboxing"></div>
+      <figcaption class="pill pill--cream">Creator video</figcaption>
+    </figure>
+    <figure class="formats__ad a-land" style="--rot:1.5deg;--d:.57s">
+      <div class="p2-shot"><img src="assets/ad_website_3.jpg" alt="POV text video ad"></div>
+      <figcaption class="pill pill--cream">POV text</figcaption>
+    </figure>
+    <figure class="formats__ad a-land" style="--rot:-1.5deg;--d:.64s">
+      <div class="p2-shot"><img src="assets/ad_zenify_1.jpg" alt="Advertorial-style ad: The tiny yellow thing eating my TikTok feed"></div>
+      <figcaption class="pill pill--cream">Article ad</figcaption>
+    </figure>
+    <figure class="formats__ad a-land" style="--rot:1deg;--d:.71s">
+      <div class="p2-shot"><img src="assets/ad_manus_2.jpg" alt="VSL with an older woman: After the divorce"></div>
+      <figcaption class="pill pill--cream">VSL</figcaption>
+    </figure>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span class="is-on">2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">10</p>
 </section></div>
-<div class="slide"><section id="winners" style="background:#1A1A1A;color:#FBF1D8;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:row;align-items:center;gap:96px">
-<div style="flex:1;display:flex;flex-direction:column;gap:36px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Every winner dies. Keep the next one <span style="color:#FF6FB0">testing.</span></h2>
-<p style="font-size:34px;line-height:1.35;color:#D8CDB8">None of our top ads from a year ago still win.</p>
-<ul style="font-size:36px;line-height:1.6">
-<li>Never get comfortable</li>
-<li>Watch X, ad spy tools, dropshippers</li>
-<li>Copy the idea, make it tasteful</li>
-</ul>
-</div>
-<div style="display:flex;flex-direction:column;align-items:center;gap:20px">
-<img src="assets/vsl.png" alt="Frame from an AI-made singing VSL: a couple in bed at night" style="width:380px;height:640px;object-fit:cover;border-radius:28px">
-<p style="font-size:28px;font-weight:700;color:#CCE245">Working now: singing VSLs, made with AI</p>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#9C9384">The goal  /  1 Funnel  /  2 Ads engine  /  3 New angles  /  <b><span style="color:#CCE245">4 Beyond Meta</span></b>  /  Staying profitable</p>
-
+<div class="slide"><section id="testing" class="bg-cream">
+  <h2 class="h-2">
+    <span class="line a-rise">Test small, then let</span>
+    <span class="line a-rise" style="--d:.08s">the <span class="hl hl--pink">numbers</span> decide</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.18s">Campaign setup matters less now. This is the simple structure we use.</p>
+  <div class="testing__board">
+    <div class="testing__col">
+      <p class="pill a-land" style="--d:.26s">Set up</p>
+      <div class="testing__step a-pop" style="--d:.3s">
+        <p class="testing__n">1</p>
+        <p class="testing__t">One campaign per angle</p>
+      </div>
+      <div class="testing__step a-pop" style="--d:.36s">
+        <p class="testing__n">2</p>
+        <p class="testing__t">ABO ad sets, mixed formats</p>
+      </div>
+      <div class="testing__step a-pop" style="--d:.42s">
+        <p class="testing__n">3</p>
+        <p class="testing__t">Budget: 1–1.5x your CPA a day</p>
+      </div>
+    </div>
+    <div class="testing__col">
+      <p class="pill a-land" style="--d:.46s">Then decide</p>
+      <div class="testing__rule a-pop" style="--d:.5s">
+        <p class="testing__if">10+ sales at a scalable ROAS</p>
+        <p class="testing__verdict">Scale</p>
+      </div>
+      <div class="testing__rule testing__rule--win a-pop" style="--d:.58s">
+        <p class="testing__if">50+ sales: make variations and its own page</p>
+        <p class="testing__verdict">Winner</p>
+      </div>
+      <div class="testing__rule testing__rule--kill a-pop" style="--d:.66s">
+        <p class="testing__if">Neither</p>
+        <p class="testing__verdict">Kill</p>
+      </div>
+      <p class="testing__note a-rise" style="--d:.66s">Scalable = above your break-even. Work yours out from your margins.</p>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span class="is-on">2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">11</p>
 </section></div>
-<div class="slide"><section id="beyond" style="background:#F9E3EA;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Start building beyond Meta at $30k a day</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">By $100k you'll need it. Meta is still our biggest channel, but one channel and one product is a big risk.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:row;gap:32px">
-<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FBF1D8;border-radius:32px;padding:48px">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:72px;height:72px;color:#FF2A8E"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-<h3 style="font-size:48px;font-weight:800">More channels</h3>
-<p style="font-size:30px;line-height:1.4;color:#5A5048">Meta, Google, TikTok, Taboola and more. Harder to knock over.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FBF1D8;border-radius:32px;padding:48px">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:72px;height:72px;color:#FF2A8E"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
-<h3 style="font-size:48px;font-weight:800">More products</h3>
-<p style="font-size:30px;line-height:1.4;color:#5A5048">One product can die fast. Add new ones and new categories.</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FBF1D8;border-radius:32px;padding:48px">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;width:72px;height:72px;color:#FF2A8E"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-<h3 style="font-size:48px;font-weight:800">Partners &amp; creators</h3>
-<p style="font-size:30px;line-height:1.4;color:#5A5048">Partners, influencers and creators unlock new audiences and countries.</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  1 Funnel  /  2 Ads engine  /  3 New angles  /  <b><span style="color:#C8106A">4 Beyond Meta</span></b>  /  Staying profitable</p>
-
+<div class="slide"><section id="angles" class="bg-pink">
+  <h2 class="h-2">
+    <span class="line a-rise">Your best angles are</span>
+    <span class="line a-rise" style="--d:.08s">already in your <span class="hl hl--lime">reviews</span></span>
+  </h2>
+  <p class="lead a-rise" style="--d:.18s">Menopause came from our reviews. It opened a new market: older women with more to spend.</p>
+  <div class="angles__chain">
+    <div class="card angles__step a-pop" style="--d:.3s">
+      <p class="card__tag pill pill--lime">1. Reviews</p>
+      <svg class="angles__icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#p2-star"/></svg>
+      <p class="angles__say">Women keep mentioning menopause</p>
+    </div>
+    <svg class="angles__arrow a-rise" style="--d:.38s" viewBox="0 0 64 48" aria-hidden="true"><use href="#p2-arrow"/></svg>
+    <div class="card angles__step angles__step--key a-pop" style="--d:.42s">
+      <p class="card__tag pill pill--cream">2. Angle</p>
+      <svg class="angles__icon" style="--icon:var(--cream)" viewBox="0 0 24 24" aria-hidden="true"><use href="#p2-bulb"/></svg>
+      <p class="angles__say">Pleasure after menopause</p>
+    </div>
+    <svg class="angles__arrow a-rise" style="--d:.5s" viewBox="0 0 64 48" aria-hidden="true"><use href="#p2-arrow"/></svg>
+    <figure class="angles__shot angles__shot--ad a-pop" style="--d:.54s">
+      <p class="card__tag pill pill--lime">3. Ad</p>
+      <div class="p2-shot"><img src="assets/ad_manus_0.jpg" alt="Our ad featuring an older woman"></div>
+    </figure>
+    <svg class="angles__arrow a-rise" style="--d:.62s" viewBox="0 0 64 48" aria-hidden="true"><use href="#p2-arrow"/></svg>
+    <figure class="angles__shot angles__shot--page a-pop" style="--d:.66s">
+      <p class="card__tag pill pill--lime">4. Page</p>
+      <div class="p2-shot"><img src="assets/lp_meno.jpg" alt="Our menopause landing page"></div>
+    </figure>
+  </div>
+  <div class="chips angles__more a-rise" style="--d:.7s">
+    <p class="angles__also">Also look at:</p>
+    <p class="chip">Reddit and X</p>
+    <p class="chip">Competitor reviews</p>
+    <p class="chip">Dropshipper ads</p>
+    <p class="pill pill--lime">Tip: have Claude read them all</p>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span class="is-on">3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">12</p>
 </section></div>
-<div class="slide"><section id="drill" style="background:#FBF1D8;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:36px">
-<div style="display:flex;flex-direction:column;gap:16px">
-<h2 style="font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-2px">Below 15% EBIT, we run the same five steps</h2>
-<p style="font-size:34px;line-height:1.35;color:#5A5048">No panic, no blaming the season. Start with the formula.</p>
-</div>
-<p style="font-size:44px;font-weight:800;background:#CCE245;padding:28px 40px;border-radius:24px">Revenue = Sessions × Conversion × Order value</p>
-<div style="flex:1;display:flex;flex-direction:row;gap:24px">
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:32px">
-<p style="font-size:56px;font-weight:900;color:#FF2A8E">1</p>
-<h3 style="font-size:38px;font-weight:800;line-height:1.1">Find it</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Which country, source, or part of the formula?</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:32px">
-<p style="font-size:56px;font-weight:900;color:#FF2A8E">2</p>
-<h3 style="font-size:38px;font-weight:800;line-height:1.1">Cut back</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Kill the losers until you're at 15%</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:32px">
-<p style="font-size:56px;font-weight:900;color:#FF2A8E">3</p>
-<h3 style="font-size:38px;font-weight:800;line-height:1.1">Accept the dip</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">Less spend, fewer sessions, less revenue</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#FFF9EC;border:2px solid #EADFC4;border-radius:28px;padding:32px">
-<p style="font-size:56px;font-weight:900;color:#FF2A8E">4</p>
-<h3 style="font-size:38px;font-weight:800;line-height:1.1">Rebuild</h3>
-<p style="font-size:26px;line-height:1.35;color:#5A5048">New angles, pages, offers</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#1A1A1A;color:#FBF1D8;border-radius:28px;padding:32px">
-<p style="font-size:56px;font-weight:900;color:#CCE245">5</p>
-<h3 style="font-size:38px;font-weight:800;line-height:1.1">Keep testing</h3>
-<p style="font-size:26px;line-height:1.35;color:#D8CDB8">Today's tests are next month's winners</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;letter-spacing:1px;color:#7A6E5C">The goal  /  1 Funnel  /  2 Ads engine  /  3 New angles  /  4 Beyond Meta  /  <b><span style="color:#C8106A">Staying profitable</span></b></p>
-
+<div class="slide"><section id="winners" class="bg-ink grid">
+  <div class="winners__copy">
+    <h2 class="h-1">
+      <span class="line a-rise">Every winner dies.</span>
+      <span class="line a-rise" style="--d:.1s">Keep the next</span>
+      <span class="line a-rise" style="--d:.2s">one <span class="hl hl--lime">testing.</span></span>
+    </h2>
+    <p class="lead a-rise" style="--d:.32s">None of our top ads from a year ago still win.</p>
+    <ul class="winners__list">
+      <li class="a-rise" style="--d:.42s">Never get comfortable</li>
+      <li class="a-rise" style="--d:.5s">Watch X, ad spy tools, dropshippers</li>
+      <li class="a-rise" style="--d:.58s">Copy the idea, make it tasteful</li>
+    </ul>
+  </div>
+  <figure class="winners__frame frame a-land" style="--rot:3deg;--d:.3s">
+    <div class="frame__media"><img src="assets/vsl.png" alt="Frame from an AI-made singing VSL: a couple in bed at night"></div>
+    <figcaption class="frame__cap"><span class="winners__now pill pill--pink a-land" style="--rot:-4deg;--d:.62s">Working now:</span> singing VSLs, made with AI</figcaption>
+  </figure>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span class="is-on">4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">13</p>
 </section></div>
-<div class="slide"><section id="close" data-transition="fade" style="background:#FF2A8E;color:#1A1A1A;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:64px">
-<h1 style="font-size:104px;font-weight:900;line-height:1.05;letter-spacing:-3px">To get Meta to $100k a day, you need more than Meta.</h1>
-<div style="display:flex;flex-direction:row;gap:20px">
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBF1D8;padding:28px;border-radius:24px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">Step 1</p>
-<p style="font-size:32px;font-weight:800">One winning funnel</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBF1D8;padding:28px;border-radius:24px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">Step 2</p>
-<p style="font-size:32px;font-weight:800">An ads engine</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBF1D8;padding:28px;border-radius:24px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">Step 3</p>
-<p style="font-size:32px;font-weight:800">New angles</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBF1D8;padding:28px;border-radius:24px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C8106A">Step 4</p>
-<p style="font-size:32px;font-weight:800">Beyond Meta</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#1A1A1A;color:#FBF1D8;padding:28px;border-radius:24px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#CCE245">Always</p>
-<p style="font-size:32px;font-weight:800">15–20% EBIT</p>
-</div>
-</div>
-
+<div class="slide"><section id="beyond" class="bg-lime stack">
+  <h2 class="h-1">
+    <span class="line a-rise">Start building beyond</span>
+    <span class="line a-rise" style="--d:.1s">Meta at <span class="hl hl--cream">$30k</span> a day</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.2s">By $100k you'll need it. Meta is still our biggest channel, but one channel and one product is a big risk.</p>
+  <div class="cards" style="--n:3">
+    <div class="card a-pop" style="--d:.4s">
+      <h3 class="card__tag pill pill--pink">More channels</h3>
+      <span class="beyond__icon" style="--rot:-6deg"><svg aria-hidden="true"><use href="#p3-globe"/></svg></span>
+      <p class="body">Meta, Google, TikTok, Taboola and more. Harder to knock over.</p>
+    </div>
+    <div class="card a-pop" style="--d:.5s">
+      <h3 class="card__tag pill pill--pink">More products</h3>
+      <span class="beyond__icon" style="--rot:5deg"><svg aria-hidden="true"><use href="#p3-bulb"/></svg></span>
+      <p class="body">One product can die fast. Add new ones and new categories.</p>
+    </div>
+    <div class="card a-pop" style="--d:.6s">
+      <h3 class="card__tag pill pill--pink">Partners &amp; creators</h3>
+      <span class="beyond__icon" style="--rot:-4deg"><svg aria-hidden="true"><use href="#p3-people"/></svg></span>
+      <p class="body">Partners, influencers and creators unlock new audiences and countries.</p>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span class="is-on">4 Beyond Meta</span> <span class="sep">/</span> <span>Staying profitable</span></p>
+  <p class="pageno">14</p>
 </section></div>
-<div class="slide"><section id="thanks" style="background:#1A1A1A;color:#FBF1D8;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:row;align-items:center;gap:96px">
-<div style="flex:1;display:flex;flex-direction:column;gap:32px">
-<h1 style="font-size:160px;font-weight:900;line-height:1;letter-spacing:-5px">Thank you</h1>
-<p style="font-family:'Newsreader', Georgia, serif;font-style:italic;font-size:64px;color:#FF6FB0">Questions?</p>
-<p style="font-size:30px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#CCE245">Momo · Co-founder, Care &amp; Bloom</p>
-</div>
-<img src="assets/momo.jpg" alt="Momo smiling in front of a yellow wall" style="width:440px;height:440px;object-fit:cover;border-radius:220px">
-
+<div class="slide"><section id="drill" class="bg-cream stack">
+  <h2 class="h-2">
+    <span class="line a-rise">Below <span class="hl hl--pink">15%</span> EBIT, we run</span>
+    <span class="line a-rise" style="--d:.1s">the same five steps</span>
+  </h2>
+  <p class="lead a-rise" style="--d:.2s">No panic, no blaming the season. Start with the formula.</p>
+  <p class="drill__formula a-pop" style="--d:.3s"><span>Revenue</span> <span class="drill__op">=</span> <span>Sessions</span> <span class="drill__op">×</span> <span>Conversion</span> <span class="drill__op">×</span> <span>Order value</span></p>
+  <div class="cards" style="--n:5">
+    <div class="card a-pop" style="--d:.42s">
+      <p class="drill__num" style="--rot:-5deg">1</p>
+      <h3 class="h-3">Find it</h3>
+      <p class="body">Which country, source, or part of the formula?</p>
+    </div>
+    <div class="card a-pop" style="--d:.49s">
+      <p class="drill__num" style="--rot:4deg">2</p>
+      <h3 class="h-3">Cut back</h3>
+      <p class="body">Kill the losers until you're at 15%</p>
+    </div>
+    <div class="card a-pop" style="--d:.56s">
+      <p class="drill__num" style="--rot:-3deg">3</p>
+      <h3 class="h-3">Accept the dip</h3>
+      <p class="body">Less spend, fewer sessions, less revenue</p>
+    </div>
+    <div class="card a-pop" style="--d:.63s">
+      <p class="drill__num" style="--rot:5deg">4</p>
+      <h3 class="h-3">Rebuild</h3>
+      <p class="body">New angles, pages, offers</p>
+    </div>
+    <div class="card drill__last a-pop" style="--d:.7s">
+      <p class="drill__num" style="--rot:-4deg">5</p>
+      <h3 class="h-3">Keep testing</h3>
+      <p class="body">Today's tests are next month's winners</p>
+    </div>
+  </div>
+  <p class="secnav"><span>The goal</span> <span class="sep">/</span> <span>1 Funnel</span> <span class="sep">/</span> <span>2 Ads engine</span> <span class="sep">/</span> <span>3 New angles</span> <span class="sep">/</span> <span>4 Beyond Meta</span> <span class="sep">/</span> <span class="is-on">Staying profitable</span></p>
+  <p class="pageno">15</p>
+</section></div>
+<div class="slide"><section id="close" class="bg-pink" data-transition="fade">
+  <div class="split__block bg-lime a-wipe"></div>
+  <h1 class="h-hero close__say">
+    <span class="line a-rise">To get Meta to</span>
+    <span class="line a-rise" style="--d:.1s"><span class="mega"><span class="mega__unit">$</span>100k</span> a day,</span>
+    <span class="line a-rise" style="--d:.2s">you need</span>
+    <span class="line"><span class="hl hl--lime a-land" style="--rot:-2deg;--d:.5s">more than Meta.</span></span>
+  </h1>
+  <div class="close__steps">
+    <div class="card a-pop" style="--d:.38s">
+      <p class="card__tag pill pill--pink">Step 1</p>
+      <p class="h-3">One winning funnel</p>
+    </div>
+    <div class="card a-pop" style="--d:.45s">
+      <p class="card__tag pill pill--pink">Step 2</p>
+      <p class="h-3">An ads engine</p>
+    </div>
+    <div class="card a-pop" style="--d:.52s">
+      <p class="card__tag pill pill--pink">Step 3</p>
+      <p class="h-3">New angles</p>
+    </div>
+    <div class="card a-pop" style="--d:.59s">
+      <p class="card__tag pill pill--pink">Step 4</p>
+      <p class="h-3">Beyond Meta</p>
+    </div>
+    <div class="card close__always a-pop" style="--d:.68s">
+      <p class="card__tag pill pill--lime">Always</p>
+      <p class="h-3">15–20% EBIT</p>
+    </div>
+  </div>
+  <p class="pageno">16</p>
+</section></div>
+<div class="slide"><section id="thanks" class="bg-ink grid">
+  <div class="thanks__portrait">
+    <figure class="frame a-land" style="--rot:-4deg;--d:.05s">
+      <div class="frame__media"><img src="assets/momo.jpg" alt="Momo smiling in front of a yellow wall"></div>
+    </figure>
+    <div class="burst a-land" style="--size:300px;--rot:9deg;--d:.55s">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><use class="burst__drop" href="#shape-burst"/><use class="burst__face" href="#shape-burst"/></svg>
+      <p class="burst__text">Questions?</p>
+    </div>
+  </div>
+  <div class="thanks__copy stack">
+    <h1>
+      <span class="mega a-rise" style="--d:.15s">Thank</span>
+      <span class="mega a-rise" style="--d:.25s">you</span>
+    </h1>
+    <p class="chips a-rise" style="--d:.42s"><span class="chip">Momo</span> <span class="dot">·</span> <span class="chip">Co-founder, Care &amp; Bloom</span></p>
+  </div>
+  <p class="pageno">17</p>
 </section></div>
 </div>
 <div id="ui"><button id="prev" aria-label="Previous slide">&#8249;</button><span id="count"></span><button id="next" aria-label="Next slide">&#8250;</button></div>
